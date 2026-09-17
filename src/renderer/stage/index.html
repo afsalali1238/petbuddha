@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bodhi — stage</title>
+    <style>
+      :root {
+        --ink: #1a1a1a;
+        --paper: rgba(255, 255, 255, 0.82);
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        /* The window is click-through; only the figure itself is interactive. */
+        cursor: default;
+      }
+      body.pointer {
+        cursor: pointer;
+      }
+      canvas#stage {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      #hud {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        user-select: none;
+      }
+      .hud-item {
+        position: absolute;
+        transform: translate(-50%, -100%);
+        padding: 3px 8px;
+        border-radius: 10px;
+        background: var(--paper);
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        opacity: 0;
+        transition: opacity 180ms ease;
+      }
+      .hud-item.visible {
+        opacity: 1;
+      }
+      #countdown {
+        font-variant-numeric: tabular-nums;
+        font-size: 13px;
+      }
+      #nudge {
+        background: rgba(255, 246, 232, 0.92);
+        font-weight: 500;
+      }
+      #hint {
+        font-weight: 500;
+      }
+      #pill {
+        background: rgba(255, 42, 42, 0.92);
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <div id="hud">
+      <div class="hud-item" id="countdown"></div>
+      <div class="hud-item" id="nudge"></div>
+      <div class="hud-item" id="hint"></div>
+      <div class="hud-item" id="pill"></div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

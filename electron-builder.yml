@@ -1,0 +1,53 @@
+appId: com.bodhi.pomodoro
+productName: Bodhi Pomodoro
+copyright: Copyright © 2026
+
+directories:
+  buildResources: assets/icons
+  output: release
+
+files:
+  - out/**/*
+  - package.json
+
+# Models, sounds and tray icons live outside the asar so the app can read them
+# as plain files at runtime (and so nothing binary hides in git objects).
+extraResources:
+  - from: assets
+    to: assets
+    filter:
+      - '**/*'
+
+win:
+  target:
+    - nsis
+    - portable
+  icon: assets/icons/icon.ico
+  artifactName: ${productName}-${version}-${arch}.${ext}
+  legalTrademarks: ''
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Bodhi Pomodoro
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true
+
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}
+  requestExecutionLevel: user
+
+# electron-updater: installed builds update themselves; the portable build shows
+# a "new version available" link instead (it cannot replace its own exe).
+publish:
+  provider: github
+  owner: afsalali1238
+  repo: petbuddha
+
+# Trailing slash is required: electron-builder appends "v{version}/{file}".
+electronDownload:
+  mirror: https://github.com/electron/electron/releases/download/

@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bodhi — model viewer</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #23201b;
+        --muted: #6f6659;
+        --line: #e6ded0;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        color: var(--ink);
+        background: #fdfaf4;
+      }
+      #viewport {
+        flex: 1;
+        position: relative;
+        background: linear-gradient(180deg, #fffdf7, #f3ece0);
+      }
+      canvas {
+        display: block;
+      }
+      #drop {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 8px;
+        border: 2px dashed var(--line);
+        margin: 16px;
+        border-radius: 12px;
+        color: var(--muted);
+        text-align: center;
+        pointer-events: none;
+      }
+      #drop.hidden {
+        display: none;
+      }
+      aside {
+        width: 320px;
+        border-left: 1px solid var(--line);
+        padding: 16px;
+        overflow-y: auto;
+        font-size: 13px;
+      }
+      h1 {
+        font-size: 15px;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin: 18px 0 8px;
+      }
+      .stats {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 6px 10px;
+        margin-bottom: 4px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: #f08a24;
+      }
+      button.active {
+        background: #ffc24d;
+        border-color: #c9621a;
+      }
+      button .meta {
+        float: right;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 8px 0;
+      }
+      input[type='range'] {
+        flex: 1;
+      }
+      .clip-name {
+        font-weight: 600;
+      }
+      .clip-loop {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      code {
+        background: #f4efe5;
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewport">
+      <div id="drop">
+        <strong>Drop a .glb here</strong>
+        <span>bodhi.glb or tree.glb — or use the file picker →</span>
+      </div>
+    </div>
+
+    <aside>
+      <h1>Bodhi model viewer</h1>
+      <p class="stats" id="stats">No model loaded.</p>
+      <div class="row">
+        <input type="file" id="file" accept=".glb,.gltf" />
+      </div>
+
+      <h2>Contract clips (§4.3)</h2>
+      <div id="clips"></div>
+
+      <h2>Playback</h2>
+      <div class="row">
+        <label for="speed">Speed</label>
+        <input id="speed" type="range" min="0.1" max="2" step="0.1" value="1" />
+        <span id="speedValue">1.0×</span>
+      </div>
+      <label class="row"><input type="checkbox" id="loop" checked /> Loop</label>
+      <label class="row"><input type="checkbox" id="outlines" checked /> Outlines</label>
+      <label class="row"><input type="checkbox" id="wireframe" /> Wireframe</label>
+      <button id="stop">Stop</button>
+
+      <h2>Notes</h2>
+      <p class="stats">
+        Renders with the shipping toon recipe: 3-step gradient map, flat palette colours,
+        inverted-hull outline on the Buddha only. Durations must match
+        <code>src/shared/constants.ts</code> exactly.
+      </p>
+    </aside>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from 'three'
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
+      const viewport = document.getElementById('viewport')
+      const drop = document.getElementById('drop')
+      const statsEl = document.getElementById('stats')
+      const clipsEl = document.getElementById('clips')
+      const fileInput = document.getElementById('file')
+      const loopToggle = document.getElementById('loop')
+      const outlineToggle = document.getElementById('outlines')
+      const wireToggle = document.getElementById('wireframe')
+      const speed = document.getElementById('speed')
+      const speedValue = document.getElementById('speedValue')
+
+      const PALETTE = {
+        outline: '#1A1A1A',
+        skinBase: '#FFF6E8',
+        skinShade: '#EBDCC6',
+        robeBase: '#F08A24',
+        robeShade: '#C9621A',
+        sash: '#8A4B12',
+        shadesFrame: '#1A1A1A',
+        lensIdle: '#2B2B2B',
+        lensHighlight: '#FFFFFF',
+        lensCharge: '#FF2A2A',
+        leafLight: '#7CC94F',
+        leafDark: '#1E6B2C',
+        cushion: '#D94F4F',
+        cushionBand: '#A83838',
+        auraGold: '#FFC24D',
+        islandGrass: '#7CC94F',
+        islandDirt: '#8A5A3B',
+        trunk: '#8A5A3B',
+        blossom: '#FFE3EE'
+      }
+
+      // The 12 contract clips (§4.3) — durations are checked against the model.
+      const CONTRACT = {
+        idle_sit: 4.0,
+        meditate: 5.0,
+        shades_off: 0.8,
+        shades_on: 0.6,
+        stand_up: 1.0,
+        hop_off: 0.6,
+        walk: 0.7,
+        hop_on: 0.6,
+        sit_down: 0.9,
+        nod: 0.6,
+        shades_charge: 0.3,
+        glance: 0.8
+      }
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+      renderer.setClearColor(0x000000, 0)
+      viewport.append(renderer.domElement)
+
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 100)
+      camera.position.set(0, 1.1, 4.2)
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.target.set(0, 0.85, 0)
+
+      scene.add(new THREE.HemisphereLight(0xfff8ec, 0xd8c9b0, 0.9))
+      const sun = new THREE.DirectionalLight(0xfff6e0, 0.6)
+      sun.position.set(-2, 3, 2.5)
+      scene.add(sun)
+
+      const grid = new THREE.GridHelper(4, 8, 0xd8c9b0, 0xe6ded0)
+      scene.add(grid)
+
+      const gradientMap = (() => {
+        const data = new Uint8Array([140, 209, 255])
+        const texture = new THREE.DataTexture(data, 3, 1, THREE.RedFormat)
+        texture.minFilter = THREE.NearestFilter
+        texture.magFilter = THREE.NearestFilter
+        texture.needsUpdate = true
+        return texture
+      })()
+
+      let mixer = null
+      let model = null
+      let outlines = []
+      let currentAction = null
+      const actions = new Map()
+
+      function roleOf(name) {
+        const i = name.indexOf(':')
+        return i >= 0 ? name.slice(i + 1) : 'outline'
+      }
+
+      function toonify(root) {
+        root.traverse((object) => {
+          if (!object.isMesh) return
+          const role = roleOf(object.name)
+          const vertexColored = role.endsWith('VC')
+          object.material = new THREE.MeshToonMaterial({
+            color: vertexColored ? 0xffffff : new THREE.Color(PALETTE[role] ?? PALETTE.skinBase),
+            gradientMap,
+            vertexColors: vertexColored
+          })
+        })
+      }
+
+      function buildOutlines(root) {
+        const hulls = []
+        const material = new THREE.ShaderMaterial({
+          uniforms: {
+            uWidth: { value: 0.008 },
+            uColor: { value: new THREE.Color(PALETTE.outline) }
+          },
+          vertexShader: `
+            uniform float uWidth;
+            void main() {
+              vec3 expanded = position + normalize(normal) * uWidth;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(expanded, 1.0);
+            }
+          `,
+          fragmentShader: `
+            uniform vec3 uColor;
+            void main() { gl_FragColor = vec4(uColor, 1.0); }
+          `,
+          side: THREE.BackSide
+        })
+        root.traverse((object) => {
+          if (!object.isMesh) return
+          if (!object.name.startsWith('bodhi_')) return
+          if (object.name.includes(':lensVC')) return
+          const hull = new THREE.Mesh(object.geometry, material)
+          hull.position.copy(object.position)
+          hull.quaternion.copy(object.quaternion)
+          hull.scale.copy(object.scale)
+          hull.renderOrder = -1
+          object.parent.add(hull)
+          hulls.push(hull)
+        })
+        return hulls
+      }
+
+      function clearModel() {
+        if (model) {
+          scene.remove(model)
+          model = null
+        }
+        outlines = []
+        mixer = null
+        actions.clear()
+        clipsEl.innerHTML = ''
+      }
+
+      function play(name) {
+        const action = actions.get(name)
+        if (!action) return
+        if (currentAction && currentAction !== action) {
+          currentAction.crossFadeTo(action, 0.2, false)
+        }
+        action.reset()
+        action.enabled = true
+        action.setEffectiveWeight(1)
+        action.setLoop(
+          loopToggle.checked ? THREE.LoopRepeat : THREE.LoopOnce,
+          loopToggle.checked ? Infinity : 1
+        )
+        action.clampWhenFinished = true
+        action.play()
+        currentAction = action
+        for (const button of clipsEl.querySelectorAll('button')) {
+          button.classList.toggle('active', button.dataset.clip === name)
+        }
+      }
+
+      function load(arrayBuffer, label) {
+        clearModel()
+        new GLTFLoader().parse(
+          arrayBuffer,
+          '',
+          (gltf) => {
+            model = gltf.scene
+            toonify(model)
+            outlines = buildOutlines(model)
+            scene.add(model)
+
+            const box = new THREE.Box3().setFromObject(model)
+            const size = box.getSize(new THREE.Vector3())
+            const centre = box.getCenter(new THREE.Vector3())
+            controls.target.copy(centre)
+            camera.position.set(centre.x + size.x * 1.4, centre.y + size.y * 0.4, centre.z + size.y * 2.6)
+            controls.update()
+
+            let tris = 0
+            let meshes = 0
+            model.traverse((object) => {
+              if (!object.isMesh) return
+              meshes++
+              tris += object.geometry.index
+                ? object.geometry.index.count / 3
+                : object.geometry.getAttribute('position').count / 3
+            })
+            statsEl.textContent =
+              `${label} · ${Math.round(tris)} tris · ${meshes} meshes · ` +
+              `${gltf.animations.length} clips · height ${size.y.toFixed(2)} units`
+
+            mixer = new THREE.AnimationMixer(model)
+            gltf.animations.forEach((clip) => {
+              actions.set(clip.name, mixer.clipAction(clip))
+              const expected = CONTRACT[clip.name]
+              const ok = expected == null || Math.abs(expected - clip.duration) < 1e-6
+              const button = document.createElement('button')
+              button.dataset.clip = clip.name
+              button.innerHTML =
+                `<span class="clip-name">${clip.name}</span>` +
+                `<span class="meta">${clip.duration.toFixed(2)}s · ${clip.tracks.length} tracks</span>` +
+                (expected != null && !ok
+                  ? `<div class="clip-loop" style="color:#c0392b">contract says ${expected.toFixed(1)}s</div>`
+                  : '')
+              button.addEventListener('click', () => play(clip.name))
+              clipsEl.append(button)
+            })
+
+            const first = gltf.animations[0]
+            if (first) play(first.name)
+            drop.classList.add('hidden')
+          },
+          (error) => {
+            statsEl.textContent = `Failed to parse ${label}: ${error}`
+          }
+        )
+      }
+
+      function readFile(file) {
+        const reader = new FileReader()
+        reader.onload = () => load(reader.result, file.name)
+        reader.readAsArrayBuffer(file)
+      }
+
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files?.[0]) readFile(fileInput.files[0])
+      })
+      viewport.addEventListener('dragover', (event) => event.preventDefault())
+      viewport.addEventListener('drop', (event) => {
+        event.preventDefault()
+        const file = event.dataTransfer?.files?.[0]
+        if (file) readFile(file)
+      })
+
+      speed.addEventListener('input', () => {
+        speedValue.textContent = `${Number(speed.value).toFixed(1)}×`
+        if (mixer) mixer.timeScale = Number(speed.value)
+      })
+      loopToggle.addEventListener('change', () => {
+        if (currentAction) play(currentAction.getClip().name)
+      })
+      outlineToggle.addEventListener('change', () => {
+        outlines.forEach((hull) => (hull.visible = outlineToggle.checked))
+      })
+      wireToggle.addEventListener('change', () => {
+        model?.traverse((object) => {
+          if (object.isMesh && object.material) object.material.wireframe = wireToggle.checked
+        })
+      })
+      document.getElementById('stop').addEventListener('click', () => {
+        mixer?.stopAllAction()
+        currentAction = null
+        for (const button of clipsEl.querySelectorAll('button')) button.classList.remove('active')
+      })
+
+      function resize() {
+        const { clientWidth: w, clientHeight: h } = viewport
+        renderer.setSize(w, h, false)
+        camera.aspect = w / h
+        camera.updateProjectionMatrix()
+      }
+      window.addEventListener('resize', resize)
+      resize()
+
+      const clock = new THREE.Clock()
+      renderer.setAnimationLoop(() => {
+        mixer?.update(clock.getDelta())
+        controls.update()
+        renderer.render(scene, camera)
+      })
+
+      // Convenience: auto-load the shipped Buddha when served from the repo root.
+      fetch('assets/models/bodhi.glb')
+        .then((response) => (response.ok ? response.arrayBuffer() : null))
+        .then((buffer) => {
+          if (buffer) load(buffer, 'bodhi.glb')
+        })
+        .catch(() => undefined)
+    </script>
+  </body>
+</html>

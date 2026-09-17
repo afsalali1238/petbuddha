@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bodhi Pomodoro — Settings</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Bodhi Pomodoro</h1>
+      <p class="stats" id="stats">—</p>
+    </header>
+
+    <main>
+      <section>
+        <h2>Timing</h2>
+        <div class="row">
+          <label for="preset">Preset</label>
+          <select id="preset"></select>
+        </div>
+        <div id="custom" class="custom">
+          <div class="row">
+            <label for="focus">Focus (min)</label>
+            <input id="focus" type="number" min="1" max="240" />
+          </div>
+          <div class="row">
+            <label for="short">Short break (min)</label>
+            <input id="short" type="number" min="1" max="120" />
+          </div>
+          <div class="row">
+            <label for="long">Long break (min)</label>
+            <input id="long" type="number" min="1" max="180" />
+          </div>
+          <div class="row">
+            <label for="every">Long break every</label>
+            <input id="every" type="number" min="1" max="12" />
+          </div>
+          <p class="error" id="custom-error"></p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Where he sits</h2>
+        <div class="row">
+          <label for="display">Display</label>
+          <select id="display"></select>
+        </div>
+        <div class="row">
+          <label for="size">Size</label>
+          <select id="size">
+            <option value="75">75%</option>
+            <option value="100">100%</option>
+            <option value="125">125%</option>
+            <option value="150">150%</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" id="alwaysOnTop" /> Always on top</label>
+        <label class="check"
+          ><input type="checkbox" id="clickThrough" /> Click-through when not hovered</label
+        >
+        <label class="check"
+          ><input type="checkbox" id="walkAcrossScreen" /> Walk across screen on break</label
+        >
+      </section>
+
+      <section>
+        <h2>Flow</h2>
+        <label class="check"><input type="checkbox" id="autoStartBreak" /> Auto-start break</label>
+        <label class="check"
+          ><input type="checkbox" id="autoStartNextFocus" /> Auto-start next focus</label
+        >
+        <label class="check"><input type="checkbox" id="sound" /> Bell sound</label>
+        <div class="row">
+          <label for="volume">Volume</label>
+          <input id="volume" type="range" min="0" max="100" step="5" />
+        </div>
+        <label class="check"><input type="checkbox" id="footsteps" /> Footstep sounds</label>
+        <label class="check"
+          ><input type="checkbox" id="hideDuringFullscreen" /> Hide during fullscreen apps</label
+        >
+        <label class="check"><input type="checkbox" id="launchAtLogin" /> Launch at login</label>
+        <div class="row">
+          <label for="shortcut">Global shortcut</label>
+          <input id="shortcut" type="text" placeholder="Ctrl+Alt+P" />
+        </div>
+      </section>
+
+      <section>
+        <h2>Distraction lasers</h2>
+        <p class="note">
+          Off by default. Window titles are read in memory only — never logged, never sent
+          anywhere.
+        </p>
+        <label class="check"><input type="checkbox" id="lasers" /> Enable lasers</label>
+        <div class="row">
+          <label for="intensity">Intensity</label>
+          <select id="intensity">
+            <option value="beam">Beam</option>
+            <option value="sweep">Sweep</option>
+            <option value="full">Full (shake)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="grace">Grace period (s)</label>
+          <input id="grace" type="number" min="2" max="15" />
+        </div>
+        <div class="row">
+          <label for="cooldown">Cooldown (s)</label>
+          <input id="cooldown" type="number" min="5" max="600" />
+        </div>
+        <div class="row">
+          <label for="distractionList">Distraction list</label>
+          <textarea id="distractionList" rows="4"></textarea>
+        </div>
+        <div class="row">
+          <label for="allowList">Allow list (always wins)</label>
+          <textarea id="allowList" rows="4"></textarea>
+        </div>
+        <button id="snooze" class="ghost">Snooze lasers 15 min</button>
+      </section>
+
+      <section>
+        <h2>Comfort & rendering</h2>
+        <div class="row">
+          <label for="reduceMotion">Reduce motion</label>
+          <select id="reduceMotion">
+            <option value="auto">Follow Windows</option>
+            <option value="on">On</option>
+            <option value="off">Off</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="shadesMode">Shades on focus</label>
+          <select id="shadesMode">
+            <option value="hero">Take them off (hero animation)</option>
+            <option value="frost">Frosted lenses</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="timeOfDay">Light rig</label>
+          <select id="timeOfDay">
+            <option value="auto">Follow clock</option>
+            <option value="dawn">Dawn</option>
+            <option value="day">Day</option>
+            <option value="dusk">Dusk</option>
+            <option value="night">Night</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="renderingFix">Rendering fix</label>
+          <select id="renderingFix">
+            <option value="off">Off</option>
+            <option value="angle-d3d11">Use ANGLE D3D11</option>
+            <option value="disable-gpu-compositing">Disable GPU compositing</option>
+            <option value="disable-hw-accel">Disable hardware acceleration</option>
+          </select>
+        </div>
+        <p class="note" id="fix-note"></p>
+      </section>
+    </main>
+
+    <footer>
+      <div class="clock" id="clock">—</div>
+      <div class="actions">
+        <button id="startPause" class="primary">Start</button>
+        <button id="skip">Skip</button>
+        <button id="reset">Reset</button>
+        <button id="walk" class="ghost">Take Bodhi for a walk</button>
+      </div>
+    </footer>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

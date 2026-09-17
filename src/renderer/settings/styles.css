@@ -1,0 +1,172 @@
+:root {
+  --ink: #23201b;
+  --muted: #6f6659;
+  --paper: #fdfaf4;
+  --line: #e6ded0;
+  --accent: #f08a24;
+  --accent-dark: #c9621a;
+  --gold: #ffc24d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  font-size: 13px;
+}
+
+header {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #fffdf7, #fdf6e8);
+}
+
+h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.stats {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+main {
+  padding: 4px 20px 96px;
+}
+
+section {
+  padding: 14px 0 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+h2 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.row label {
+  flex: 0 0 44%;
+  color: var(--muted);
+}
+
+.row input[type='number'],
+.row input[type='text'],
+.row select,
+.row textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  color: var(--ink);
+}
+
+.row textarea {
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.row input[type='range'] {
+  flex: 1 1 auto;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.error {
+  margin: 6px 0 0;
+  color: #c0392b;
+  font-size: 11.5px;
+  min-height: 14px;
+}
+
+.custom {
+  display: none;
+  padding-top: 4px;
+}
+
+.custom.open {
+  display: block;
+}
+
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 20px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.clock {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+button {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent-dark);
+  color: #fff;
+  font-weight: 600;
+}
+
+button.ghost {
+  color: var(--muted);
+}
