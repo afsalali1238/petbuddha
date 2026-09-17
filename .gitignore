@@ -1,0 +1,15 @@
+node_modules/
+out/
+dist/
+release/
+*.log
+.DS_Store
+Thumbs.db
+.eslintcache
+.vite/
+coverage/
+test-results/
+playwright-report/
+
+# Local, machine-specific electron-store data (created at runtime)
+*.local.json

@@ -1,0 +1,56 @@
+{
+  "name": "bodhi-pomodoro",
+  "version": "1.0.0",
+  "description": "A calm Windows desktop pet: a tiny toon-shaded 3D Buddha meditates under a Bodhi tree while you focus, then stands up and walks off across your screen for the break.",
+  "main": "./out/main/index.js",
+  "author": "afsalali1238",
+  "license": "MIT",
+  "private": true,
+  "keywords": [
+    "pomodoro",
+    "desktop-pet",
+    "electron",
+    "three.js"
+  ],
+  "scripts": {
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "build": "electron-vite build",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "assets": "node --experimental-strip-types tools/build-model.mjs && node --experimental-strip-types tools/synth-audio.mjs && node --experimental-strip-types tools/build-icons.mjs",
+    "assets:model": "node --experimental-strip-types tools/build-model.mjs",
+    "assets:audio": "node --experimental-strip-types tools/synth-audio.mjs",
+    "assets:icons": "node --experimental-strip-types tools/build-icons.mjs",
+    "validate:glb": "node tools/validate-glb.mjs",
+    "dist": "npm run typecheck && npm run test && npm run build && electron-builder --win --x64",
+    "dist:dir": "npm run build && electron-builder --dir",
+    "preview": "node --experimental-strip-types tools/preview.mjs",
+    "preview:ascii": "node --experimental-strip-types tools/preview-ascii.mjs"
+  },
+  "dependencies": {
+    "@electron-toolkit/preload": "^3.0.2",
+    "@electron-toolkit/utils": "^4.0.0",
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.6.2",
+    "get-windows": "^9.3.0",
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.13.1",
+    "@types/three": "0.169.0",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.0",
+    "electron-vite": "^5.0.0",
+    "gltf-validator": "^2.0.0-dev.3.10",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.7.3",
+    "vite": "^7.0.0",
+    "vitest": "^3.0.0"
+  }
+}
