@@ -30,7 +30,8 @@
     "dist": "npm run typecheck && npm run test && npm run build && electron-builder --win --x64",
     "dist:dir": "npm run build && electron-builder --dir",
     "preview": "node --experimental-strip-types tools/preview.mjs",
-    "preview:ascii": "node --experimental-strip-types tools/preview-ascii.mjs"
+    "preview:ascii": "node --experimental-strip-types tools/preview-ascii.mjs",
+    "showcase": "node tools/serve.mjs"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

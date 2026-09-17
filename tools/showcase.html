@@ -1,0 +1,1846 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bodhi Pomodoro — Interactive Desktop Pet & Showcase</title>
+    <link rel="icon" type="image/png" href="/assets/icons/tray-32.png" />
+    <style>
+      :root {
+        --ink: #23201b;
+        --ink-muted: #6f6659;
+        --ink-light: #9a8f80;
+        --bg: #fdfaf4;
+        --panel-bg: rgba(255, 255, 255, 0.88);
+        --line: #e6ded0;
+        --line-subtle: #f0eae0;
+        --saffron: #f08a24;
+        --saffron-dark: #c9621a;
+        --saffron-soft: #fff6e8;
+        --gold: #ffc24d;
+        --leaf-green: #7cc94f;
+        --cushion-red: #d94f4f;
+        --laser-red: #ff2a2a;
+        --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        --font-mono: ui-monospace, 'Cascadia Code', monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        color: var(--ink);
+        background: var(--bg);
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Top App Header */
+      header {
+        height: 54px;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        flex-shrink: 0;
+        z-index: 20;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--saffron), #e57615);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(240, 138, 36, 0.35);
+      }
+
+      .brand-icon svg {
+        width: 20px;
+        height: 20px;
+        fill: #fff;
+      }
+
+      .brand-text h1 {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+      }
+
+      .brand-text span {
+        font-size: 11px;
+        color: var(--ink-muted);
+      }
+
+      .tabs {
+        display: flex;
+        gap: 4px;
+        background: var(--line-subtle);
+        padding: 3px;
+        border-radius: 8px;
+      }
+
+      .tab-btn {
+        border: none;
+        background: transparent;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink-muted);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 120ms ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .tab-btn:hover {
+        color: var(--ink);
+      }
+
+      .tab-btn.active {
+        background: #fff;
+        color: var(--ink);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .badge {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 12px;
+        background: #eef7e9;
+        color: #2b7516;
+        border: 1px solid #cce5bf;
+      }
+
+      /* Main Content Layout */
+      main {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .tab-view {
+        display: none;
+        width: 100%;
+        height: 100%;
+      }
+
+      .tab-view.active {
+        display: flex;
+      }
+
+      /* ========================================================
+         TAB 1: LIVE PET SIMULATOR
+         ======================================================== */
+      #tab-pet {
+        position: relative;
+        flex-direction: row;
+      }
+
+      .viewport-container {
+        flex: 1;
+        position: relative;
+        background: radial-gradient(circle at 50% 70%, #fffdf8 0%, #f4ede0 100%);
+        overflow: hidden;
+      }
+
+      canvas#pet-stage {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      canvas#laser-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      /* Floating Pet HUD */
+      .pet-hud {
+        position: absolute;
+        top: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--panel-bg);
+        backdrop-filter: blur(12px);
+        padding: 10px 20px;
+        border-radius: 30px;
+        border: 1px solid var(--line);
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        z-index: 12;
+        transition: all 200ms ease;
+      }
+
+      .timer-display {
+        font-variant-numeric: tabular-nums;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+
+      .phase-pill {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 3px 10px;
+        border-radius: 12px;
+        background: var(--saffron-soft);
+        color: var(--saffron-dark);
+      }
+
+      .nudge-bubble {
+        position: absolute;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff;
+        border: 1px solid #ffd494;
+        box-shadow: 0 4px 14px rgba(240, 138, 36, 0.15);
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #8a4b12;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        z-index: 12;
+        animation: floatUpDown 2.5s ease-in-out infinite;
+      }
+
+      @keyframes floatUpDown {
+        0%, 100% { transform: translate(-50%, 0); }
+        50% { transform: translate(-50%, -4px); }
+      }
+
+      /* Time of Day Pills in Viewport */
+      .tod-selector {
+        position: absolute;
+        bottom: 24px;
+        left: 24px;
+        background: var(--panel-bg);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--line);
+        padding: 4px;
+        border-radius: 20px;
+        display: flex;
+        gap: 2px;
+        z-index: 12;
+      }
+
+      .tod-btn {
+        border: none;
+        background: transparent;
+        padding: 5px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 14px;
+        cursor: pointer;
+        color: var(--ink-muted);
+        transition: all 120ms ease;
+      }
+
+      .tod-btn.active {
+        background: #fff;
+        color: var(--ink);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Laser Target Marker */
+      #distraction-target {
+        position: absolute;
+        width: 130px;
+        padding: 8px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 2px dashed #ff4747;
+        box-shadow: 0 4px 12px rgba(255, 42, 42, 0.2);
+        cursor: move;
+        font-size: 10px;
+        font-weight: 700;
+        color: #b01010;
+        text-align: center;
+        user-select: none;
+        display: none;
+        z-index: 11;
+      }
+
+      /* Pet Control Sidebar */
+      .pet-sidebar {
+        width: 340px;
+        background: #fff;
+        border-left: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 20px;
+        gap: 20px;
+        flex-shrink: 0;
+      }
+
+      .section-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ink-muted);
+        margin-bottom: 8px;
+      }
+
+      .control-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        cursor: pointer;
+        transition: all 120ms ease;
+      }
+
+      .btn:hover {
+        background: #fdfaf4;
+        border-color: #d1c5b0;
+      }
+
+      .btn-primary {
+        background: var(--saffron);
+        border-color: var(--saffron-dark);
+        color: #fff;
+        box-shadow: 0 2px 6px rgba(240, 138, 36, 0.25);
+      }
+
+      .btn-primary:hover {
+        background: #e67d15;
+      }
+
+      .btn-danger {
+        background: #ffe8e8;
+        border-color: #ffb8b8;
+        color: #c92a2a;
+      }
+
+      .btn-danger:hover {
+        background: #ffd5d5;
+      }
+
+      .btn-full {
+        grid-column: span 2;
+      }
+
+      .session-stats-card {
+        background: var(--saffron-soft);
+        border: 1px solid #f2e3cc;
+        border-radius: 10px;
+        padding: 12px;
+      }
+
+      .stats-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+
+      .stats-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .stats-val {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .tree-bloom-progress {
+        margin-top: 10px;
+      }
+
+      .progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--ink-muted);
+        margin-bottom: 4px;
+      }
+
+      .progress-bar-bg {
+        height: 6px;
+        background: #e8dcc8;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--leaf-green), #5ea334);
+        width: 25%;
+        border-radius: 3px;
+        transition: width 300ms ease;
+      }
+
+      /* Audio Soundboard in Sidebar */
+      .audio-pill-grid {
+        display: flex;
+        gap: 6px;
+      }
+
+      .audio-pill {
+        flex: 1;
+        padding: 7px 4px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        background: #fff;
+        cursor: pointer;
+        text-align: center;
+        transition: all 120ms ease;
+      }
+
+      .audio-pill:hover {
+        border-color: var(--saffron);
+        background: var(--saffron-soft);
+      }
+
+      /* ========================================================
+         TAB 2: 3D MODEL & ANIMATION STUDIO
+         ======================================================== */
+      #tab-studio {
+        flex-direction: row;
+      }
+
+      .studio-viewport {
+        flex: 1;
+        position: relative;
+        background: linear-gradient(180deg, #fffcf5 0%, #ebe4d5 100%);
+      }
+
+      canvas#studio-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .studio-sidebar {
+        width: 320px;
+        background: #fff;
+        border-left: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 16px;
+        gap: 14px;
+        flex-shrink: 0;
+      }
+
+      .clip-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: 280px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+
+      .clip-btn {
+        width: 100%;
+        text-align: left;
+        padding: 7px 10px;
+        font-size: 12px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        background: #fff;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 100ms ease;
+      }
+
+      .clip-btn:hover {
+        border-color: var(--saffron);
+      }
+
+      .clip-btn.active {
+        background: #ffc24d;
+        border-color: var(--saffron-dark);
+        font-weight: 700;
+      }
+
+      .clip-duration {
+        font-size: 11px;
+        color: var(--ink-muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+      }
+
+      .slider-row input[type='range'] {
+        flex: 1;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      /* ========================================================
+         TAB 3: SETTINGS & ARCHITECTURE
+         ======================================================== */
+      #tab-settings {
+        padding: 30px;
+        overflow-y: auto;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #tab-settings.active {
+        display: flex;
+      }
+
+      .doc-container {
+        max-width: 860px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      }
+
+      .card h2 {
+        font-size: 17px;
+        margin-bottom: 12px;
+      }
+
+      .card p {
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: var(--ink-muted);
+        margin-bottom: 12px;
+      }
+
+      .spec-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      .spec-box {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .spec-box h4 {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--ink-muted);
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+      }
+
+      .spec-box .val {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      code {
+        font-family: var(--font-mono);
+        background: #f4efe5;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+    </style>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/node_modules/three/build/three.module.js",
+          "three/addons/": "/node_modules/three/examples/jsm/",
+          "three/examples/jsm/": "/node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <!-- Top Header Navigation -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="12" cy="7" r="2" fill="none" stroke="#f08a24" stroke-width="1.5"/></svg>
+        </div>
+        <div class="brand-text">
+          <h1>Bodhi Pomodoro</h1>
+          <span>3D Chibi Desktop Pet &amp; Mindfulness Companion</span>
+        </div>
+      </div>
+
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="tab-pet">
+          <span>🧘</span> Live Pet Simulator
+        </button>
+        <button class="tab-btn" data-tab="tab-studio">
+          <span>🔍</span> 3D Model &amp; Clips Studio
+        </button>
+        <button class="tab-btn" data-tab="tab-settings">
+          <span>📖</span> Architecture &amp; Spec
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <span class="badge" title="248 unit tests passing">✅ 248 Unit Tests</span>
+        <button id="btn-sound-toggle" class="btn" style="padding: 5px 10px; font-size: 12px;">
+          🔊 Sound: ON
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <!-- ========================================================
+           TAB 1: LIVE PET SIMULATOR
+           ======================================================== -->
+      <section id="tab-pet" class="tab-view active">
+        <div class="viewport-container" id="pet-viewport">
+          <canvas id="pet-stage"></canvas>
+          <canvas id="laser-overlay"></canvas>
+
+          <!-- Floating HUD Pill -->
+          <div class="pet-hud">
+            <span class="phase-pill" id="hud-phase-pill">IDLE</span>
+            <div class="timer-display" id="hud-timer">25:00</div>
+          </div>
+
+          <!-- Rotating Break Nudge Bubble -->
+          <div class="nudge-bubble" id="hud-nudge">
+            <span>💧</span> <span id="nudge-text">Drink a glass of water</span>
+          </div>
+
+          <!-- Time of Day Light Rigs -->
+          <div class="tod-selector">
+            <button class="tod-btn active" data-tod="day">☀️ Day</button>
+            <button class="tod-btn" data-tod="dusk">🌅 Dusk</button>
+            <button class="tod-btn" data-tod="night">🌙 Night</button>
+            <button class="tod-btn" data-tod="dawn">🌄 Dawn</button>
+          </div>
+
+          <!-- Draggable Distraction Window Simulation Target -->
+          <div id="distraction-target">
+            ⚠️ Distracting Window<br/><span style="font-weight:normal; font-size:9px">Drag to reposition</span>
+          </div>
+        </div>
+
+        <!-- Sidebar Controls -->
+        <aside class="pet-sidebar">
+          <div>
+            <div class="section-title">Session State Machine</div>
+            <div class="control-grid">
+              <button class="btn btn-primary btn-full" id="btn-start-focus">
+                ▶️ Start Focus Session
+              </button>
+              <button class="btn" id="btn-pause-focus">
+                ⏸️ Pause
+              </button>
+              <button class="btn" id="btn-skip-phase">
+                ⏭️ Skip Phase
+              </button>
+              <button class="btn btn-full" id="btn-fast-forward">
+                ⚡ Fast-Forward Loop (10s Focus)
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">Distraction Watcher &amp; Lasers (M3)</div>
+            <p style="font-size: 11.5px; color: var(--ink-muted); margin-bottom: 8px;">
+              Simulate opening YouTube/Twitter during focus: Bodhi notices, charges shades, and fires dual laser blasts!
+            </p>
+            <div class="control-grid">
+              <button class="btn btn-danger" id="btn-simulate-distraction">
+                🚨 Distract Bodhi!
+              </button>
+              <button class="btn" id="btn-refocus">
+                🎯 Refocus Calm
+              </button>
+            </div>
+          </div>
+
+          <div class="session-stats-card">
+            <div class="section-title" style="margin-bottom: 6px;">Tree Bloom &amp; Stats (M4)</div>
+            <div class="stats-row">
+              <span style="color:var(--ink-muted)">Active Phase:</span>
+              <span class="stats-val" id="stat-active-phase">Idle (Ready)</span>
+            </div>
+            <div class="stats-row">
+              <span style="color:var(--ink-muted)">Focus Sessions:</span>
+              <span class="stats-val" id="stat-sessions">0 completed</span>
+            </div>
+            <div class="stats-row">
+              <span style="color:var(--ink-muted)">Tree Bloom Stage:</span>
+              <span class="stats-val" id="stat-bloom">0 / 4</span>
+            </div>
+
+            <div class="tree-bloom-progress">
+              <div class="progress-label">
+                <span>Progress to next blossom</span>
+                <span id="bloom-pct">0%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="bloom-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <button class="btn btn-full" id="btn-bloom-now" style="margin-top: 10px; font-size: 11px; padding: 6px;">
+              🌸 Trigger Tree Bloom Pop
+            </button>
+          </div>
+
+          <div>
+            <div class="section-title">Sound Effects (22.05 kHz WAV)</div>
+            <div class="audio-pill-grid">
+              <button class="audio-pill" id="snd-bell">🔔 Bell (Wake)</button>
+              <button class="audio-pill" id="snd-soft">🎵 Soft Chime</button>
+              <button class="audio-pill" id="snd-pew">⚡ Laser Pew</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">Preset Durations</div>
+            <div class="control-grid">
+              <button class="btn active-preset" data-focus="25" data-break="5" style="border-color:var(--saffron)">
+                Standard (25/5)
+              </button>
+              <button class="btn" data-focus="50" data-break="10">
+                Long (50/10)
+              </button>
+              <button class="btn" data-focus="90" data-break="15">
+                Monk (90/15)
+              </button>
+              <button class="btn" data-focus="0.16" data-break="0.08">
+                Demo (10s/5s)
+              </button>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- ========================================================
+           TAB 2: 3D MODEL & ANIMATION STUDIO
+           ======================================================== -->
+      <section id="tab-studio" class="tab-view">
+        <div class="studio-viewport" id="studio-viewport">
+          <canvas id="studio-canvas"></canvas>
+        </div>
+
+        <aside class="studio-sidebar">
+          <div>
+            <div class="section-title">Model Selection</div>
+            <div class="control-grid">
+              <button class="btn btn-primary" id="btn-model-bodhi">Bodhi (Chibi)</button>
+              <button class="btn" id="btn-model-tree">Bodhi Tree</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">Contract Clips (§4.3)</div>
+            <div class="clip-list" id="studio-clips">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">Studio Controls</div>
+            <div class="slider-row">
+              <label for="studio-speed">Speed</label>
+              <input type="range" id="studio-speed" min="0.1" max="2.0" step="0.1" value="1.0" />
+              <span id="studio-speed-val" style="width: 32px; text-align:right;">1.0×</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+              <label class="checkbox-row"><input type="checkbox" id="studio-loop" checked /> Loop current clip</label>
+              <label class="checkbox-row"><input type="checkbox" id="studio-toon" checked /> Toon shading (3-step ramp)</label>
+              <label class="checkbox-row"><input type="checkbox" id="studio-outlines" checked /> Inverted-hull cel outline</label>
+              <label class="checkbox-row"><input type="checkbox" id="studio-wireframe" /> Wireframe geometry</label>
+            </div>
+          </div>
+
+          <div class="session-stats-card">
+            <div class="section-title" style="margin-bottom: 6px;">Geometry &amp; Budget</div>
+            <div class="stats-row">
+              <span style="color:var(--ink-muted)">Triangles:</span>
+              <span class="stats-val" id="model-triangles">4,284 tris</span>
+            </div>
+            <div class="stats-row">
+              <span style="color:var(--ink-muted)">Meshes / Draw Calls:</span>
+              <span class="stats-val" id="model-meshes">25 meshes</span>
+            </div>
+            <div class="stats-row">
+              <span style="color:var(--ink-muted)">glTF Status:</span>
+              <span class="stats-val" style="color:#2b7516">0 errors, 0 warnings</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- ========================================================
+           TAB 3: ARCHITECTURE & SPEC
+           ======================================================== -->
+      <section id="tab-settings" class="tab-view">
+        <div class="doc-container">
+          <div class="card">
+            <h2>Bodhi Pomodoro Architecture &amp; Engineering</h2>
+            <p>
+              Bodhi Pomodoro is a minimalist desktop pet built with <strong>Electron + TypeScript + Three.js</strong>.
+              A tiny toon-shaded 3D Buddha meditates under a Bodhi tree while you focus; when the session ends he stands up, hops off his cushion and waddles off across your screen. <em>His absence is the break.</em>
+            </p>
+
+            <div class="spec-grid">
+              <div class="spec-box">
+                <h4>Core Logic</h4>
+                <div class="val">Pure State Machine</div>
+                <p style="font-size:11px; margin-top:4px; color:var(--ink-muted)">Zero I/O, 100% deterministic, 248 unit tests.</p>
+              </div>
+              <div class="spec-box">
+                <h4>3D Stage Renderer</h4>
+                <div class="val">Three.js Orthographic</div>
+                <p style="font-size:11px; margin-top:4px; color:var(--ink-muted)">1 unit = 1 DIP px. Exact pixel mapping.</p>
+              </div>
+              <div class="spec-box">
+                <h4>Asset Pipeline</h4>
+                <div class="val">Procedural Code-Gen</div>
+                <p style="font-size:11px; margin-top:4px; color:var(--ink-muted)">Original CC0-safe .glb models generated via code.</p>
+              </div>
+              <div class="spec-box">
+                <h4>Distraction Watcher</h4>
+                <div class="val">3-Tier Escalation</div>
+                <p style="font-size:11px; margin-top:4px; color:var(--ink-muted)">Grace → Glance → Laser Blasts with snooze.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>The 7 Phases of Bodhi</h2>
+            <p>
+              <code>[*] → Idle → Focus → Waking → WalkingOut → Break → Returning → Ready</code>
+            </p>
+            <ul style="padding-left: 20px; font-size: 13.5px; color: var(--ink-muted); line-height: 1.8;">
+              <li><strong>Idle / Ready:</strong> Seated in lotus, shades on, gentle breathing, occasional head tilt.</li>
+              <li><strong>Focus:</strong> Shades off, 5-second pranayama breath cycle, gold aura expands, leaves drift lazily from canopy.</li>
+              <li><strong>Focus (Paused):</strong> Aura dims to 30%, breathing and drifting leaves freeze in place.</li>
+              <li><strong>Waking:</strong> Deep temple bell resonates (4s), Bodhi awakens, stands up smoothly, and hops down from cushion.</li>
+              <li><strong>WalkingOut:</strong> Bodhi waddles across the floor (100 px/s) toward the screen edge with dust puffs at his feet.</li>
+              <li><strong>Break:</strong> Empty cushion, floating countdown timer, rotating mindfulness nudges.</li>
+              <li><strong>Returning:</strong> Soft bell chimes, Bodhi walks back in, hops on cushion, sits down, and slides shades back on.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h2>Milestones Completed (M0 → M5)</h2>
+            <div class="spec-grid">
+              <div class="spec-box">
+                <h4>M0: Character Rig</h4>
+                <div class="val">✅ Validated GLB</div>
+                <p style="font-size:11px; margin-top:4px; color:var(--ink-muted)">5,804 tris Buddha + 2,180 tris tree. 14 animation clips.</p>
+              </div>
+              <div class="spec-box">
+                <h4>M1: Solid Core</h4>
+                <div class="val">✅ 248 Unit Tests</div>
+                <p style="font-size:11px; margin-top:4px; color:var(--ink-muted)">State machine, timer, store migration, focus logic.</p>
+              </div>
+              <div class="spec-box">
+                <h4>M2: 3D Stage</h4>
+                <div class="val">✅ Toon Shading</div>
+                <p style="font-size:11px; margin-top:4px; color:var(--ink-muted)">Inverted-hull cel outlines, floor walking, click-through.</p>
+              </div>
+              <div class="spec-box">
+                <h4>M3: Lasers</h4>
+                <div class="val">✅ 2D Laser Overlay</div>
+                <p style="font-size:11px; margin-top:4px; color:var(--ink-muted)">Dual eye-flare tracking, scorch marks, photosensitivity cap.</p>
+              </div>
+              <div class="spec-box">
+                <h4>M4: Polish</h4>
+                <div class="val">✅ Tree Bloom &amp; Audio</div>
+                <p style="font-size:11px; margin-top:4px; color:var(--ink-muted)">Foliage clusters bloom, 4 time-of-day rigs, synthesized sound.</p>
+              </div>
+              <div class="spec-box">
+                <h4>M5: Distribution</h4>
+                <div class="val">⚠️ Configured</div>
+                <p style="font-size:11px; margin-top:4px; color:var(--ink-muted)">NSIS installer &amp; portable build setup for Windows.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Embedded Scripts -->
+    <script type="module">
+      import * as THREE from 'three'
+      import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+      import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+
+      // ==========================================
+      // PALETTE & CONSTANTS (from src/shared/*.ts)
+      // ==========================================
+      const PALETTE = {
+        outline: '#1A1A1A',
+        skinBase: '#FFF6E8',
+        skinShade: '#EBDCC6',
+        robeBase: '#F08A24',
+        robeShade: '#C9621A',
+        sash: '#8A4B12',
+        shadesFrame: '#1A1A1A',
+        lensIdle: '#2B2B2B',
+        lensHighlight: '#FFFFFF',
+        lensCharge: '#FF2A2A',
+        leafLight: '#7CC94F',
+        leafDark: '#1E6B2C',
+        cushion: '#D94F4F',
+        cushionBand: '#A83838',
+        auraGold: '#FFC24D',
+        laserCore: '#FF2A2A',
+        laserGlow: '#FF8A8A',
+        blossom: '#FFE3EE',
+        islandGrass: '#7CC94F',
+        islandDirt: '#8A5A3B',
+        trunk: '#8A5A3B',
+        skyLight: '#FFF8EC',
+        groundLight: '#D8C9B0'
+      }
+
+      const TIME_OF_DAY_RIGS = {
+        dawn: { hemiSky: 0xFFD9A0, hemiGround: 0xC9A882, hemiIntensity: 0.85, dirColor: 0xFFD9A0, dirIntensity: 0.55 },
+        day: { hemiSky: 0xFFF8EC, hemiGround: 0xD8C9B0, hemiIntensity: 0.95, dirColor: 0xFFF6E0, dirIntensity: 0.65 },
+        dusk: { hemiSky: 0xFF9E6B, hemiGround: 0xB07A55, hemiIntensity: 0.85, dirColor: 0xFF9E6B, dirIntensity: 0.60 },
+        night: { hemiSky: 0x7E8BC7, hemiGround: 0x3B3F52, hemiIntensity: 0.70, dirColor: 0x9FB0E8, dirIntensity: 0.40 }
+      }
+
+      const NUDGES = [
+        'Drink a glass of water 💧',
+        'Roll your shoulders back and relax 🧘',
+        'Take three slow, deep breaths 🌬️',
+        'Look at something 20 feet away for 20 seconds 👀',
+        'Stretch your neck gently from side to side 🌿',
+        'Step away from the screen for a minute 🚶'
+      ]
+
+      // Audio bank
+      const audioBell = new Audio('/assets/sounds/bell.wav')
+      const audioSoftBell = new Audio('/assets/sounds/soft-bell.wav')
+      const audioPew = new Audio('/assets/sounds/pew.wav')
+      let soundEnabled = true
+
+      function playSound(audio) {
+        if (!soundEnabled) return
+        audio.currentTime = 0
+        audio.play().catch(() => undefined)
+      }
+
+      document.getElementById('btn-sound-toggle').addEventListener('click', (e) => {
+        soundEnabled = !soundEnabled
+        e.target.textContent = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF'
+      })
+
+      document.getElementById('snd-bell').addEventListener('click', () => playSound(audioBell))
+      document.getElementById('snd-soft').addEventListener('click', () => playSound(audioSoftBell))
+      document.getElementById('snd-pew').addEventListener('click', () => playSound(audioPew))
+
+      // Tab switcher
+      const tabBtns = document.querySelectorAll('.tab-btn')
+      const tabViews = document.querySelectorAll('.tab-view')
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          tabBtns.forEach(b => b.classList.remove('active'))
+          tabViews.forEach(v => v.classList.remove('active'))
+          btn.classList.add('active')
+          const target = document.getElementById(btn.dataset.tab)
+          if (target) target.classList.add('active')
+          if (btn.dataset.tab === 'tab-studio') {
+            onStudioResize()
+          } else if (btn.dataset.tab === 'tab-pet') {
+            onPetResize()
+          }
+        })
+      })
+
+      // Toon shader gradient texture
+      const gradientTexture = (() => {
+        const data = new Uint8Array([140, 209, 255])
+        const tex = new THREE.DataTexture(data, 3, 1, THREE.RedFormat)
+        tex.minFilter = THREE.NearestFilter
+        tex.magFilter = THREE.NearestFilter
+        tex.needsUpdate = true
+        return tex
+      })()
+
+      function roleOf(name) {
+        const i = name.indexOf(':')
+        return i >= 0 ? name.slice(i + 1) : 'outline'
+      }
+
+      function toonify(root) {
+        root.traverse((object) => {
+          if (!object.isMesh) return
+          const role = roleOf(object.name)
+          const vertexColored = role.endsWith('VC')
+          object.material = new THREE.MeshToonMaterial({
+            color: vertexColored ? 0xffffff : new THREE.Color(PALETTE[role] ?? PALETTE.skinBase),
+            gradientMap: gradientTexture,
+            vertexColors: vertexColored
+          })
+        })
+      }
+
+      function buildOutlines(root) {
+        const hulls = []
+        const material = new THREE.ShaderMaterial({
+          uniforms: {
+            uWidth: { value: 0.012 },
+            uColor: { value: new THREE.Color(PALETTE.outline) }
+          },
+          vertexShader: `
+            uniform float uWidth;
+            void main() {
+              vec3 expanded = position + normalize(normal) * uWidth;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(expanded, 1.0);
+            }
+          `,
+          fragmentShader: `
+            uniform vec3 uColor;
+            void main() { gl_FragColor = vec4(uColor, 1.0); }
+          `,
+          side: THREE.BackSide
+        })
+        root.traverse((object) => {
+          if (!object.isMesh) return
+          if (!object.name.startsWith('bodhi_')) return
+          if (object.name.includes(':lensVC')) return
+          const hull = new THREE.Mesh(object.geometry, material)
+          hull.position.copy(object.position)
+          hull.quaternion.copy(object.quaternion)
+          hull.scale.copy(object.scale)
+          hull.renderOrder = -1
+          object.parent.add(hull)
+          hulls.push(hull)
+        })
+        return hulls
+      }
+
+      // ==========================================
+      // TAB 1: LIVE PET SIMULATOR
+      // ==========================================
+      const petCanvas = document.getElementById('pet-stage')
+      const petContainer = document.getElementById('pet-viewport')
+      const laserCanvas = document.getElementById('laser-overlay')
+      const laserCtx = laserCanvas.getContext('2d')
+
+      const petRenderer = new THREE.WebGLRenderer({
+        canvas: petCanvas,
+        antialias: true,
+        alpha: true
+      })
+      petRenderer.setClearColor(0x000000, 0)
+
+      const petScene = new THREE.Scene()
+      // Perspective camera for beautiful depth
+      const petCamera = new THREE.PerspectiveCamera(34, 1, 0.1, 100)
+      petCamera.position.set(0, 1.35, 4.2)
+      petCamera.lookAt(0, 0.75, 0)
+
+      const petHemi = new THREE.HemisphereLight(
+        TIME_OF_DAY_RIGS.day.hemiSky,
+        TIME_OF_DAY_RIGS.day.hemiGround,
+        TIME_OF_DAY_RIGS.day.hemiIntensity
+      )
+      const petSun = new THREE.DirectionalLight(
+        TIME_OF_DAY_RIGS.day.dirColor,
+        TIME_OF_DAY_RIGS.day.dirIntensity
+      )
+      petSun.position.set(-1.8, 3.2, 2.2)
+      petScene.add(petHemi, petSun)
+
+      // Time of Day selection
+      document.querySelectorAll('.tod-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tod-btn').forEach(b => b.classList.remove('active'))
+          btn.classList.add('active')
+          const tod = TIME_OF_DAY_RIGS[btn.dataset.tod]
+          if (tod) {
+            petHemi.color.setHex(tod.hemiSky)
+            petHemi.groundColor.setHex(tod.hemiGround)
+            petHemi.intensity = tod.hemiIntensity
+            petSun.color.setHex(tod.dirColor)
+            petSun.intensity = tod.dirIntensity
+          }
+        })
+      })
+
+      // Bodhi & Tree models in pet scene
+      let petBodhiModel = null
+      let petBodhiMixer = null
+      const petBodhiActions = new Map()
+      let petTreeModel = null
+      let petTreeClusters = []
+      let petLensLeft = null
+      let petLensRight = null
+      let petLensMaterial = null
+
+      // Aura Ring
+      const auraGeom = new THREE.RingGeometry(0.35, 0.48, 48)
+      const auraMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(PALETTE.auraGold),
+        transparent: true,
+        opacity: 0,
+        side: THREE.DoubleSide
+      })
+      const auraMesh = new THREE.Mesh(auraGeom, auraMat)
+      auraMesh.rotation.x = -Math.PI / 2
+      auraMesh.position.set(0.16, 0.15, 0.18)
+      petScene.add(auraMesh)
+
+      // Drifting Leaves Particles
+      const leafCount = 45
+      const leafGeom = new THREE.PlaneGeometry(0.04, 0.05)
+      const leafMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(PALETTE.leafLight),
+        side: THREE.DoubleSide
+      })
+      const leafMesh = new THREE.InstancedMesh(leafGeom, leafMat, leafCount)
+      const leafDummy = new THREE.Object3D()
+      const leafData = []
+      for (let i = 0; i < leafCount; i++) {
+        leafData.push({
+          x: -0.3 + (Math.random() - 0.5) * 1.4,
+          y: 0.2 + Math.random() * 1.8,
+          z: -0.2 + (Math.random() - 0.5) * 1.0,
+          vy: 0.15 + Math.random() * 0.2,
+          rot: Math.random() * Math.PI,
+          spin: (Math.random() - 0.5) * 2
+        })
+      }
+      leafMesh.visible = false
+      petScene.add(leafMesh)
+
+      // Load Models
+      const gltfLoader = new GLTFLoader()
+      Promise.all([
+        fetch('/assets/models/tree.glb').then(r => r.arrayBuffer()),
+        fetch('/assets/models/bodhi.glb').then(r => r.arrayBuffer())
+      ]).then(([treeBuffer, bodhiBuffer]) => {
+        // Load Tree
+        gltfLoader.parse(treeBuffer, '', (gltf) => {
+          petTreeModel = gltf.scene
+          toonify(petTreeModel)
+          for (let i = 0; i < 6; i++) {
+            const cl = petTreeModel.getObjectByName(`foliage_${i}`)
+            if (cl) {
+              cl.visible = i < 3
+              petTreeClusters.push({ node: cl, basePhase: i * 0.9 })
+            }
+          }
+          petScene.add(petTreeModel)
+        })
+
+        // Load Bodhi
+        gltfLoader.parse(bodhiBuffer, '', (gltf) => {
+          petBodhiModel = gltf.scene
+          toonify(petBodhiModel)
+          buildOutlines(petBodhiModel)
+          petBodhiModel.position.set(0.16, 0.13, 0.18)
+
+          petLensLeft = petBodhiModel.getObjectByName('lens_l')
+          petLensRight = petBodhiModel.getObjectByName('lens_r')
+          petBodhiModel.traverse(obj => {
+            if (obj.isMesh && obj.name.includes(':lensVC')) {
+              petLensMaterial = obj.material
+            }
+          })
+
+          petBodhiMixer = new THREE.AnimationMixer(petBodhiModel)
+          gltf.animations.forEach(clip => {
+            const act = petBodhiMixer.clipAction(clip)
+            act.setLoop(
+              ['idle_sit', 'meditate', 'walk', 'walk_left'].includes(clip.name)
+                ? THREE.LoopRepeat
+                : THREE.LoopOnce,
+              Infinity
+            )
+            act.clampWhenFinished = true
+            petBodhiActions.set(clip.name, act)
+          })
+
+          petScene.add(petBodhiModel)
+          playPetClip('idle_sit')
+        })
+      })
+
+      let petCurrentAction = null
+      function playPetClip(name, crossfade = 0.25) {
+        const act = petBodhiActions.get(name)
+        if (!act) return
+        if (petCurrentAction === act) {
+          if (!act.isRunning()) act.reset().play()
+          return
+        }
+        act.reset()
+        act.enabled = true
+        act.setEffectiveWeight(1)
+        act.play()
+        if (petCurrentAction) {
+          petCurrentAction.crossFadeTo(act, crossfade, false)
+        }
+        petCurrentAction = act
+      }
+
+      function setLensCharge(on) {
+        if (!petLensMaterial) return
+        if (on) {
+          petLensMaterial.vertexColors = false
+          petLensMaterial.color.set(PALETTE.lensCharge)
+          petLensMaterial.emissive = new THREE.Color(PALETTE.lensCharge)
+          petLensMaterial.emissiveIntensity = 1.0
+        } else {
+          petLensMaterial.vertexColors = true
+          petLensMaterial.color.set(0xffffff)
+          petLensMaterial.emissive = new THREE.Color(0x000000)
+          petLensMaterial.emissiveIntensity = 0
+        }
+        petLensMaterial.needsUpdate = true
+      }
+
+      // ==========================================
+      // POMODORO STATE MACHINE RUNNER
+      // ==========================================
+      let activePhase = 'idle' // 'idle', 'focus', 'paused', 'waking', 'walkingOut', 'break', 'returning', 'ready'
+      let focusDurationSec = 25 * 60
+      let breakDurationSec = 5 * 60
+      let remainingSec = focusDurationSec
+      let timerRunning = false
+      let completedSessions = 0
+      let treeBloomStage = 0
+      let walkProgress = 0
+      let walkDirection = 1
+
+      const hudPhasePill = document.getElementById('hud-phase-pill')
+      const hudTimer = document.getElementById('hud-timer')
+      const hudNudge = document.getElementById('hud-nudge')
+      const nudgeText = document.getElementById('nudge-text')
+      const statActivePhase = document.getElementById('stat-active-phase')
+      const statSessions = document.getElementById('stat-sessions')
+      const statBloom = document.getElementById('stat-bloom')
+      const bloomFill = document.getElementById('bloom-fill')
+      const bloomPct = document.getElementById('bloom-pct')
+
+      function formatTime(sec) {
+        const m = Math.floor(sec / 60)
+        const s = Math.floor(sec % 60)
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      }
+
+      function updateUI() {
+        hudPhasePill.textContent = activePhase.toUpperCase()
+        hudTimer.textContent = formatTime(remainingSec)
+        statActivePhase.textContent = activePhase.charAt(0).toUpperCase() + activePhase.slice(1)
+        statSessions.textContent = `${completedSessions} completed`
+        statBloom.textContent = `${treeBloomStage} / 4`
+        const pct = ((completedSessions % 4) / 4) * 100
+        bloomFill.style.width = `${pct}%`
+        bloomPct.textContent = `${pct}%`
+
+        // Nudge bubble on break
+        if (activePhase === 'break') {
+          hudNudge.style.display = 'flex'
+        } else {
+          hudNudge.style.display = 'none'
+        }
+
+        // Color updates for phase pill
+        if (activePhase === 'focus') {
+          hudPhasePill.style.background = '#eef7e9'
+          hudPhasePill.style.color = '#2b7516'
+        } else if (activePhase === 'break') {
+          hudPhasePill.style.background = '#e8f0fe'
+          hudPhasePill.style.color = '#1a73e8'
+        } else {
+          hudPhasePill.style.background = 'var(--saffron-soft)'
+          hudPhasePill.style.color = 'var(--saffron-dark)'
+        }
+      }
+
+      function transitionTo(phase) {
+        activePhase = phase
+        if (phase === 'focus') {
+          timerRunning = true
+          playPetClip('shades_off', 0.2)
+          setTimeout(() => {
+            if (activePhase === 'focus') playPetClip('meditate', 0.4)
+          }, 800)
+          auraMat.opacity = 0.85
+          leafMesh.visible = true
+        } else if (phase === 'paused') {
+          timerRunning = false
+          auraMat.opacity = 0.25
+        } else if (phase === 'waking') {
+          timerRunning = false
+          auraMat.opacity = 0
+          leafMesh.visible = false
+          playSound(audioBell)
+          playPetClip('stand_up', 0.3)
+          setTimeout(() => {
+            if (activePhase === 'waking') {
+              playPetClip('hop_off', 0.2)
+              setTimeout(() => transitionTo('walkingOut'), 600)
+            }
+          }, 1000)
+        } else if (phase === 'walkingOut') {
+          playPetClip('walk', 0.2)
+          walkProgress = 0
+          walkDirection = 1
+        } else if (phase === 'break') {
+          timerRunning = true
+          remainingSec = breakDurationSec
+          nudgeText.textContent = NUDGES[Math.floor(Math.random() * NUDGES.length)]
+          // Buddha is off-screen
+          if (petBodhiModel) petBodhiModel.visible = false
+        } else if (phase === 'returning') {
+          timerRunning = false
+          if (petBodhiModel) petBodhiModel.visible = true
+          playSound(audioSoftBell)
+          playPetClip('walk_left', 0.2)
+          walkProgress = 1
+          walkDirection = -1
+        } else if (phase === 'ready' || phase === 'idle') {
+          timerRunning = false
+          auraMat.opacity = 0
+          leafMesh.visible = false
+          if (petBodhiModel) {
+            petBodhiModel.visible = true
+            petBodhiModel.position.set(0.16, 0.13, 0.18)
+            petBodhiModel.rotation.y = 0
+          }
+          playPetClip('idle_sit', 0.3)
+        }
+        updateUI()
+      }
+
+      // Buttons
+      document.getElementById('btn-start-focus').addEventListener('click', () => {
+        if (activePhase === 'idle' || activePhase === 'ready') {
+          remainingSec = focusDurationSec
+          transitionTo('focus')
+        } else if (activePhase === 'paused') {
+          transitionTo('focus')
+        }
+      })
+
+      document.getElementById('btn-pause-focus').addEventListener('click', () => {
+        if (activePhase === 'focus') transitionTo('paused')
+        else if (activePhase === 'paused') transitionTo('focus')
+      })
+
+      document.getElementById('btn-skip-phase').addEventListener('click', () => {
+        if (activePhase === 'focus' || activePhase === 'paused') {
+          completedSessions++
+          if (completedSessions % 4 === 0 && treeBloomStage < 4) {
+            bloomTree()
+          }
+          transitionTo('waking')
+        } else if (activePhase === 'break') {
+          transitionTo('returning')
+        } else if (activePhase === 'waking' || activePhase === 'walkingOut') {
+          transitionTo('break')
+        }
+      })
+
+      document.getElementById('btn-fast-forward').addEventListener('click', () => {
+        focusDurationSec = 10
+        breakDurationSec = 5
+        remainingSec = 10
+        transitionTo('focus')
+      })
+
+      // Preset buttons
+      document.querySelectorAll('[data-focus]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('[data-focus]').forEach(b => b.style.borderColor = 'var(--line)')
+          btn.style.borderColor = 'var(--saffron)'
+          focusDurationSec = Math.round(parseFloat(btn.dataset.focus) * 60)
+          breakDurationSec = Math.round(parseFloat(btn.dataset.break) * 60)
+          remainingSec = focusDurationSec
+          updateUI()
+        })
+      })
+
+      function bloomTree() {
+        if (treeBloomStage < 4) {
+          treeBloomStage++
+          const cl = petTreeClusters[treeBloomStage + 2]
+          if (cl) cl.node.visible = true
+        }
+        updateUI()
+      }
+      document.getElementById('btn-bloom-now').addEventListener('click', bloomTree)
+
+      // ==========================================
+      // LASER DISTRACTION DEMO (M3)
+      // ==========================================
+      const distractionTargetEl = document.getElementById('distraction-target')
+      let laserFiring = false
+      let laserTarget = { x: 250, y: 150 }
+
+      // Make target draggable
+      let isDraggingTarget = false
+      distractionTargetEl.addEventListener('mousedown', (e) => {
+        isDraggingTarget = true
+      })
+      window.addEventListener('mousemove', (e) => {
+        if (!isDraggingTarget) return
+        const rect = petContainer.getBoundingClientRect()
+        const x = Math.max(20, Math.min(rect.width - 150, e.clientX - rect.left - 65))
+        const y = Math.max(20, Math.min(rect.height - 80, e.clientY - rect.top - 20))
+        distractionTargetEl.style.left = `${x}px`
+        distractionTargetEl.style.top = `${y}px`
+        laserTarget = { x: x + 65, y: y + 25 }
+      })
+      window.addEventListener('mouseup', () => isDraggingTarget = false)
+
+      document.getElementById('btn-simulate-distraction').addEventListener('click', () => {
+        if (laserFiring) return
+        laserFiring = true
+        distractionTargetEl.style.display = 'block'
+        distractionTargetEl.style.left = '120px'
+        distractionTargetEl.style.top = '140px'
+        laserTarget = { x: 185, y: 165 }
+
+        // Tier 1: Glance
+        playPetClip('glance', 0.2)
+        setTimeout(() => {
+          if (!laserFiring) return
+          // Tier 2: Lens Charge
+          setLensCharge(true)
+          playSound(audioPew)
+          startLaserAnimation()
+        }, 800)
+      })
+
+      document.getElementById('btn-refocus').addEventListener('click', () => {
+        laserFiring = false
+        distractionTargetEl.style.display = 'none'
+        setLensCharge(false)
+        laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height)
+        if (activePhase === 'focus') {
+          playPetClip('nod', 0.2)
+          setTimeout(() => {
+            if (activePhase === 'focus') playPetClip('meditate', 0.3)
+          }, 600)
+        } else {
+          playPetClip('idle_sit', 0.2)
+        }
+      })
+
+      function startLaserAnimation() {
+        const startTime = performance.now()
+        function step(now) {
+          if (!laserFiring) return
+          const elapsed = now - startTime
+          laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height)
+
+          // Buddha head 2D position projection
+          const headPos = new THREE.Vector3(0.16, 0.48, 0.18)
+          headPos.project(petCamera)
+          const originX = ((headPos.x + 1) / 2) * laserCanvas.width
+          const originY = ((-headPos.y + 1) / 2) * laserCanvas.height
+
+          const targetX = (laserTarget.x / petContainer.clientWidth) * laserCanvas.width
+          const targetY = (laserTarget.y / petContainer.clientHeight) * laserCanvas.height
+
+          // Laser sweep oscillation
+          const sweep = Math.sin(now * 0.015) * 20
+          const curTargetX = targetX + sweep
+
+          // Draw dual beams
+          laserCtx.save()
+          laserCtx.lineCap = 'round'
+
+          // Glow
+          laserCtx.strokeStyle = 'rgba(255, 60, 60, 0.45)'
+          laserCtx.lineWidth = 10
+          laserCtx.beginPath()
+          laserCtx.moveTo(originX - 6, originY)
+          laserCtx.lineTo(curTargetX, targetY)
+          laserCtx.moveTo(originX + 6, originY)
+          laserCtx.lineTo(curTargetX, targetY)
+          laserCtx.stroke()
+
+          // Core
+          laserCtx.strokeStyle = '#fff'
+          laserCtx.lineWidth = 3
+          laserCtx.beginPath()
+          laserCtx.moveTo(originX - 6, originY)
+          laserCtx.lineTo(curTargetX, targetY)
+          laserCtx.moveTo(originX + 6, originY)
+          laserCtx.lineTo(curTargetX, targetY)
+          laserCtx.stroke()
+
+          // Scorch spark impact
+          laserCtx.fillStyle = '#ff2a2a'
+          laserCtx.beginPath()
+          laserCtx.arc(curTargetX, targetY, 6 + Math.random() * 4, 0, Math.PI * 2)
+          laserCtx.fill()
+
+          laserCtx.restore()
+
+          if (elapsed < 4000) {
+            requestAnimationFrame(step)
+          } else {
+            laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height)
+            setLensCharge(false)
+            laserFiring = false
+            distractionTargetEl.style.display = 'none'
+            if (activePhase === 'focus') playPetClip('meditate', 0.3)
+          }
+        }
+        requestAnimationFrame(step)
+      }
+
+      // ==========================================
+      // ANIMATION LOOP (Live Pet)
+      // ==========================================
+      const petClock = new THREE.Clock()
+      let lastSecondTick = performance.now()
+
+      function petAnimate() {
+        requestAnimationFrame(petAnimate)
+        const dt = petClock.getDelta()
+        const now = performance.now()
+
+        // 1-second timer tick
+        if (now - lastSecondTick >= 1000) {
+          lastSecondTick = now
+          if (timerRunning && remainingSec > 0) {
+            remainingSec--
+            updateUI()
+            if (remainingSec <= 0) {
+              if (activePhase === 'focus') {
+                completedSessions++
+                if (completedSessions % 4 === 0 && treeBloomStage < 4) bloomTree()
+                transitionTo('waking')
+              } else if (activePhase === 'break') {
+                transitionTo('returning')
+              }
+            }
+          }
+        }
+
+        // Tree cluster sway
+        for (const cl of petTreeClusters) {
+          const sway = Math.sin((now / 400) * Math.PI * 2 + cl.basePhase) * 0.025
+          cl.node.rotation.z = sway
+        }
+
+        // Bodhi mixer update
+        if (petBodhiMixer) petBodhiMixer.update(dt)
+
+        // Walking translation
+        if (activePhase === 'walkingOut') {
+          walkProgress += dt * 0.4
+          if (petBodhiModel) {
+            petBodhiModel.position.x = 0.16 + walkProgress * 2.2
+            petBodhiModel.rotation.y = Math.PI / 3
+          }
+          if (walkProgress >= 1.0) {
+            transitionTo('break')
+          }
+        } else if (activePhase === 'returning') {
+          walkProgress -= dt * 0.4
+          if (petBodhiModel) {
+            petBodhiModel.position.x = 0.16 + walkProgress * 2.2
+            petBodhiModel.rotation.y = -Math.PI / 3
+          }
+          if (walkProgress <= 0.0) {
+            petBodhiModel.position.set(0.16, 0.13, 0.18)
+            petBodhiModel.rotation.y = 0
+            playPetClip('hop_on', 0.2)
+            setTimeout(() => {
+              playPetClip('sit_down', 0.2)
+              setTimeout(() => {
+                playPetClip('shades_on', 0.2)
+                setTimeout(() => transitionTo('ready'), 600)
+              }, 800)
+            }, 600)
+            activePhase = 'returning_settle'
+          }
+        }
+
+        // Aura pulse & Leaves update
+        if (activePhase === 'focus') {
+          const breath = Math.sin(now * 0.0013) * 0.05
+          auraMesh.scale.set(1 + breath, 1 + breath, 1)
+
+          // Drifting leaves
+          for (let i = 0; i < leafCount; i++) {
+            const l = leafData[i]
+            l.y -= l.vy * dt
+            l.rot += l.spin * dt
+            if (l.y < 0.05) {
+              l.y = 1.6 + Math.random() * 0.4
+              l.x = -0.3 + (Math.random() - 0.5) * 1.4
+            }
+            leafDummy.position.set(l.x, l.y, l.z)
+            leafDummy.rotation.set(l.rot, l.rot * 0.5, 0)
+            leafDummy.scale.setScalar(1)
+            leafDummy.updateMatrix()
+            leafMesh.setMatrixAt(i, leafDummy.matrix)
+          }
+          leafMesh.instanceMatrix.needsUpdate = true
+        }
+
+        petRenderer.render(petScene, petCamera)
+      }
+
+      function onPetResize() {
+        const w = petContainer.clientWidth
+        const h = petContainer.clientHeight
+        if (w === 0 || h === 0) return
+        petRenderer.setSize(w, h, false)
+        petCamera.aspect = w / h
+        petCamera.updateProjectionMatrix()
+        laserCanvas.width = w
+        laserCanvas.height = h
+      }
+      window.addEventListener('resize', onPetResize)
+      onPetResize()
+      petAnimate()
+
+      // ==========================================
+      // TAB 2: 3D MODEL & CLIPS STUDIO
+      // ==========================================
+      const studioCanvas = document.getElementById('studio-canvas')
+      const studioContainer = document.getElementById('studio-viewport')
+      const studioClipsEl = document.getElementById('studio-clips')
+      const studioSpeedSlider = document.getElementById('studio-speed')
+      const studioSpeedVal = document.getElementById('studio-speed-val')
+      const studioLoopCheck = document.getElementById('studio-loop')
+      const studioToonCheck = document.getElementById('studio-toon')
+      const studioOutlinesCheck = document.getElementById('studio-outlines')
+      const studioWireframeCheck = document.getElementById('studio-wireframe')
+
+      const studioRenderer = new THREE.WebGLRenderer({
+        canvas: studioCanvas,
+        antialias: true,
+        alpha: true
+      })
+      studioRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      const studioScene = new THREE.Scene()
+      const studioCamera = new THREE.PerspectiveCamera(28, 1, 0.01, 100)
+      studioCamera.position.set(0, 1.1, 4.2)
+
+      const studioControls = new OrbitControls(studioCamera, studioRenderer.domElement)
+      studioControls.target.set(0, 0.85, 0)
+      studioControls.enableDamping = true
+
+      studioScene.add(new THREE.HemisphereLight(0xfff8ec, 0xd8c9b0, 0.95))
+      const studioSun = new THREE.DirectionalLight(0xfff6e0, 0.6)
+      studioSun.position.set(-2, 3, 2.5)
+      studioScene.add(studioSun)
+
+      const grid = new THREE.GridHelper(4, 8, 0xd8c9b0, 0xe6ded0)
+      studioScene.add(grid)
+
+      let studioModel = null
+      let studioMixer = null
+      let studioOutlines = []
+      let studioActions = new Map()
+      let studioCurrentAction = null
+
+      function loadStudioModel(path, label) {
+        if (studioModel) studioScene.remove(studioModel)
+        studioClipsEl.innerHTML = ''
+        studioOutlines = []
+        studioActions.clear()
+
+        fetch(path)
+          .then(r => r.arrayBuffer())
+          .then(buffer => {
+            gltfLoader.parse(buffer, '', (gltf) => {
+              studioModel = gltf.scene
+              toonify(studioModel)
+              studioOutlines = buildOutlines(studioModel)
+              studioScene.add(studioModel)
+
+              const box = new THREE.Box3().setFromObject(studioModel)
+              const size = box.getSize(new THREE.Vector3())
+              const centre = box.getCenter(new THREE.Vector3())
+              studioControls.target.copy(centre)
+              studioCamera.position.set(centre.x + size.x * 1.5, centre.y + size.y * 0.4, centre.z + size.y * 2.8)
+              studioControls.update()
+
+              let tris = 0
+              let meshes = 0
+              studioModel.traverse(obj => {
+                if (obj.isMesh) {
+                  meshes++
+                  tris += obj.geometry.index
+                    ? obj.geometry.index.count / 3
+                    : obj.geometry.getAttribute('position').count / 3
+                }
+              })
+              document.getElementById('model-triangles').textContent = `${Math.round(tris).toLocaleString()} tris`
+              document.getElementById('model-meshes').textContent = `${meshes} meshes`
+
+              studioMixer = new THREE.AnimationMixer(studioModel)
+              gltf.animations.forEach(clip => {
+                const act = studioMixer.clipAction(clip)
+                studioActions.set(clip.name, act)
+                const btn = document.createElement('button')
+                btn.className = 'clip-btn'
+                btn.innerHTML = `<span>${clip.name}</span><span class="clip-duration">${clip.duration.toFixed(2)}s</span>`
+                btn.addEventListener('click', () => playStudioClip(clip.name))
+                studioClipsEl.appendChild(btn)
+              })
+
+              if (gltf.animations.length > 0) {
+                playStudioClip(gltf.animations[0].name)
+              }
+            })
+          })
+      }
+
+      function playStudioClip(name) {
+        const act = studioActions.get(name)
+        if (!act) return
+        if (studioCurrentAction && studioCurrentAction !== act) {
+          studioCurrentAction.crossFadeTo(act, 0.2, false)
+        }
+        act.reset()
+        act.enabled = true
+        act.setEffectiveWeight(1)
+        act.setLoop(studioLoopCheck.checked ? THREE.LoopRepeat : THREE.LoopOnce, Infinity)
+        act.clampWhenFinished = true
+        act.play()
+        studioCurrentAction = act
+        document.querySelectorAll('.clip-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.querySelector('span').textContent === name)
+        })
+      }
+
+      document.getElementById('btn-model-bodhi').addEventListener('click', () => {
+        document.getElementById('btn-model-bodhi').classList.add('btn-primary')
+        document.getElementById('btn-model-tree').classList.remove('btn-primary')
+        loadStudioModel('/assets/models/bodhi.glb', 'Bodhi')
+      })
+
+      document.getElementById('btn-model-tree').addEventListener('click', () => {
+        document.getElementById('btn-model-tree').classList.add('btn-primary')
+        document.getElementById('btn-model-bodhi').classList.remove('btn-primary')
+        loadStudioModel('/assets/models/tree.glb', 'Bodhi Tree')
+      })
+
+      studioSpeedSlider.addEventListener('input', () => {
+        const speed = parseFloat(studioSpeedSlider.value)
+        studioSpeedVal.textContent = `${speed.toFixed(1)}×`
+        if (studioMixer) studioMixer.timeScale = speed
+      })
+
+      studioOutlinesCheck.addEventListener('change', () => {
+        studioOutlines.forEach(h => h.visible = studioOutlinesCheck.checked)
+      })
+
+      studioWireframeCheck.addEventListener('change', () => {
+        if (!studioModel) return
+        studioModel.traverse(obj => {
+          if (obj.isMesh && obj.material) obj.material.wireframe = studioWireframeCheck.checked
+        })
+      })
+
+      loadStudioModel('/assets/models/bodhi.glb', 'Bodhi')
+
+      const studioClock = new THREE.Clock()
+      function studioAnimate() {
+        requestAnimationFrame(studioAnimate)
+        const dt = studioClock.getDelta()
+        if (studioMixer) studioMixer.update(dt)
+        studioControls.update()
+        studioRenderer.render(studioScene, studioCamera)
+      }
+      studioAnimate()
+
+      function onStudioResize() {
+        const w = studioContainer.clientWidth
+        const h = studioContainer.clientHeight
+        if (w === 0 || h === 0) return
+        studioRenderer.setSize(w, h, false)
+        studioCamera.aspect = w / h
+        studioCamera.updateProjectionMatrix()
+      }
+      window.addEventListener('resize', onStudioResize)
+
+      // Initialize
+      updateUI()
+    </script>
+  </body>
+</html>
