@@ -48,5 +48,6 @@ publish:
   owner: afsalali1238
   repo: petbuddha
 
+# Trailing slash is required: electron-builder appends "v{version}/{file}".
 electronDownload:
-  mirror: https://github.com/electron/electron/releases/download
+  mirror: https://github.com/electron/electron/releases/download/

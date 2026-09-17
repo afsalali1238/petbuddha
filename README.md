@@ -158,6 +158,11 @@ These are choices, not accidents. Each one is arguable; all are easy to reverse.
 - Code signing (§7.7) is **not** configured. `electron-builder` will produce unsigned
   binaries that SmartScreen will warn about. Add `CSC_LINK`/`CSC_KEY_PASSWORD` (OV) or
   configure Azure Trusted Signing before publishing.
+- `npm run dist` has **not** been executed end to end: it needs a Windows host (the
+  `get-windows` native module is prebuilt for Windows only) and it downloads the
+  ~100 MB Electron dist. The config was reviewed and `electron-builder --win --dir`
+  was run as far as the sandbox allowed, which caught and fixed a missing trailing
+  slash on the `electronDownload.mirror` URL.
 - Auto-update publishes to GitHub Releases; the portable build shows a download link
   instead of updating in place (portables cannot replace their own exe).
 

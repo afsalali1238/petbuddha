@@ -595,6 +595,41 @@ class BodhiApp {
     ipcMain.on(IPC.petContextMenu, () => this.tray.showMenu())
     ipcMain.on(IPC.petDragStart, (_event, offset: PetPosition) => this.beginDrag(offset))
     ipcMain.on(IPC.petDragEnd, () => this.endDrag())
+
+    ipcMain.on(IPC.stageReady, () => this.onStageReady())
+  }
+
+  /**
+   * The stage pulls state and settings itself on boot, but anything main pushed
+   * *before* the renderer finished loading its models was dropped on the floor
+   * — the listener did not exist yet. Re-assert the view from the state we
+   * already have. No sounds, no timers, no transitions: this is a repaint, not
+   * a re-entry.
+   */
+  private onStageReady(): void {
+    this.pushReduceMotion()
+    this.windows.sendToStage(IPC.stageHitTestEnable, { on: !this.settings.clickThrough })
+    this.windows.sendToStage(IPC.stageBloom, { stage: this.state.bloomStage })
+
+    switch (this.state.phase) {
+      case 'focus':
+        if (this.settings.shadesMode === 'frost') {
+          this.windows.sendToStage(IPC.stageLensFrost, { on: true })
+        }
+        this.playClip('meditate')
+        break
+      case 'break':
+        this.windows.sendToStage(IPC.stageAtSeat, { on: false })
+        this.windows.sendToStage(IPC.stageBreakUi, { on: true, long: this.currentBreakIsLong() })
+        break
+      case 'idle':
+      case 'ready':
+        this.windows.sendToStage(IPC.stageAtSeat, { on: true })
+        this.playClip('idle_sit')
+        break
+      default:
+        break
+    }
   }
 
   private handleAction(action: string, payload?: unknown): void {
