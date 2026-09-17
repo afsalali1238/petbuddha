@@ -49,6 +49,8 @@ let dragging = false
 let dragStartScreen = { x: 0, y: 0 }
 let hintText: string | null = null
 let hintPosition = { x: 0, y: 0 }
+/** resolved reduce-motion flag; 'on' here, and overwritten by main on 'auto' */
+let reduceMotionResolved = false
 
 /* ------------------------------------------------------------------ walking */
 
@@ -300,7 +302,7 @@ function frame(now: number): void {
 
   const phase = state?.phase ?? 'idle'
   const paused = state?.paused ?? false
-  const reduceMotion = settings?.reduceMotion === 'on'
+  const reduceMotion = reduceMotionResolved
 
   // Phase-based frame caps (§5.7).
   if (phase === 'focus' || phase === 'break') renderer.setFpsCap(RENDER_RATES.focusFps)
@@ -455,6 +457,8 @@ function applyState(next: AppState): void {
 
 function applySettings(next: Settings): void {
   settings = next
+  // 'auto' is resolved by main and pushed straight back; until then it is off.
+  reduceMotionResolved = next.reduceMotion === 'on'
   applyScale()
   placeDiorama()
   if (atSeat && !walk.active) placeActorAtSeat()
@@ -518,8 +522,16 @@ window.api.onDisplayChanged((payload) => {
 
 // Camera shake for tier-3 blasts: the camera moves, never an OS window (§6.6).
 window.api.onShake(({ px, ms }) => {
-  if (settings?.reduceMotion === 'on') return
+  if (reduceMotionResolved) return
   renderer.shake(px, ms)
+})
+
+/**
+ * The setting can be 'auto'; main is the only one that can resolve it (§6.3),
+ * so it pushes the answer down and this wins over the raw setting.
+ */
+window.api.onReduceMotion(({ on }) => {
+  reduceMotionResolved = on
 })
 
 // "Return to the path" — a small pill, never a modal, never focus-stealing.

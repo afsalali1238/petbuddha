@@ -59,6 +59,7 @@ const stage = {
   onBreakUi: listener(IPC.stageBreakUi),
   onBloom: listener(IPC.stageBloom),
   onLensFrost: listener(IPC.stageLensFrost),
+  onReduceMotion: listener(IPC.stageReduceMotion),
   onShake: listener(IPC.stageShake),
   onPill: listener(IPC.stagePill),
   setHover: (payload: HoverPayload): void => ipcRenderer.send(IPC.stageHover, payload),

@@ -22,6 +22,8 @@ export interface LaserDeps {
   getSettings: () => Settings
   /** true only during unpaused focus */
   isFocusActive: () => boolean
+  /** main's resolved reduce-motion boolean (the setting may be 'auto', §6.3) */
+  isReduceMotion: () => boolean
   /** lens positions in stage-window DIP, reported by the renderer */
   getLensPositions: () => { left: PetPosition; right: PetPosition } | null
   getWorkArea: () => { x: number; y: number; width: number; height: number }

@@ -43,6 +43,7 @@ export const IPC = {
   stageBreakUi: 'stage:break-ui',
   stageBloom: 'stage:bloom',
   stageLensFrost: 'stage:lens-frost',
+  stageReduceMotion: 'stage:reduce-motion',
   stageShake: 'stage:shake',
   stagePill: 'stage:pill',
   petClick: 'pet:click',
@@ -128,6 +129,8 @@ export interface StageApi extends BaseApi {
   onBreakUi(listener: (payload: { on: boolean; long: boolean }) => void): Unsubscribe
   onBloom(listener: (payload: { stage: 0 | 1 | 2 | 3 | 4 }) => void): Unsubscribe
   onLensFrost(listener: (payload: { on: boolean }) => void): Unsubscribe
+  /** main's resolved reduce-motion boolean (the setting can be 'auto', §6.3) */
+  onReduceMotion(listener: (payload: { on: boolean }) => void): Unsubscribe
   onShake(listener: (payload: { px: number; ms: number }) => void): Unsubscribe
   onPill(listener: (payload: { text: string; x: number; y: number }) => void): Unsubscribe
   setHover(payload: HoverPayload): void

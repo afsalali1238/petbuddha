@@ -16,6 +16,7 @@ import { createInitialState, next, type MachineEvent, type MachineState } from '
 import { PhaseTimer } from './timer'
 import { TrayController } from './tray'
 import { applyRenderingFix, WindowManager } from './windows'
+import { querySystemAnimations, resolveReduceMotion } from './systemSettings'
 import {
   clampToWorkArea,
   defaultPetPosition,
@@ -52,6 +53,8 @@ class BodhiApp {
   private nudgeTimer: NodeJS.Timeout | null = null
   private nudgeIndex = 0
   private demoPreset: Settings['preset'] | null = null
+  /** Windows' "show animations" switch, queried once when needed (§6.3 auto) */
+  private systemAnimationsEnabled = true
 
   constructor() {
     this.settings = this.store.getSettings()
@@ -78,6 +81,7 @@ class BodhiApp {
       windows: this.windows,
       getSettings: () => this.settings,
       isFocusActive: () => this.state.phase === 'focus' && !this.state.paused,
+      isReduceMotion: () => this.reduceMotion(),
       getLensPositions: () => this.lensPositions,
       getWorkArea: () => this.display.workArea,
       onGlance: (direction) => this.playClip(direction === 'left' ? 'glance' : 'glance_right'),
@@ -148,6 +152,8 @@ class BodhiApp {
     this.pushState()
     this.pushStats()
     this.pushSettings()
+    this.pushReduceMotion()
+    void this.refreshSystemSettings()
     this.watcher.start()
     this.maybeOnboard()
     this.startNudgeRotation()
@@ -316,10 +322,25 @@ class BodhiApp {
   }
 
   private reduceMotion(): boolean {
-    if (this.settings.reduceMotion === 'on') return true
-    if (this.settings.reduceMotion === 'off') return false
-    // 'auto' follows the Windows "show animations" setting (§6.3).
-    return false
+    return resolveReduceMotion(this.settings.reduceMotion, this.systemAnimationsEnabled)
+  }
+
+  /**
+   * 'auto' needs one out-of-process answer from user32. It is asked for only
+   * when the setting is 'auto', never blocks the window, and defaults to
+   * "animations on" if the query fails.
+   */
+  private async refreshSystemSettings(): Promise<void> {
+    if (this.settings.reduceMotion !== 'auto') {
+      this.pushReduceMotion()
+      return
+    }
+    this.systemAnimationsEnabled = await querySystemAnimations()
+    this.pushReduceMotion()
+  }
+
+  private pushReduceMotion(): void {
+    this.windows.sendToStage(IPC.stageReduceMotion, { on: this.reduceMotion() })
   }
 
   private after(ms: number, fn: () => void): void {
@@ -410,6 +431,7 @@ class BodhiApp {
       this.windows.sendToStage(IPC.stageHitTestEnable, { on: !this.settings.clickThrough })
       if (this.settings.clickThrough) this.windows.setStageIgnoreMouse(true)
     }
+    if ('reduceMotion' in patch) void this.refreshSystemSettings()
     if ('globalShortcut' in patch) this.registerGlobalShortcut()
     if ('launchAtLogin' in patch) this.applyLoginItem()
     if ('lasers' in patch && !this.settings.lasers) this.lasers.reset()

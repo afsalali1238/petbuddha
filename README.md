@@ -12,7 +12,7 @@ into memory and never leave the device.
 npm install          # add --ignore-scripts on non-Windows boxes (see Notes)
 npm run assets       # build the model, the sounds and the icons (see M0)
 npm run dev          # run the pet
-npm run test         # 236 pure-logic unit tests
+npm run test         # 248 pure-logic unit tests
 npm run dist         # NSIS installer + portable exe
 ```
 
@@ -53,7 +53,8 @@ MAIN (single source of truth)
  ├─ tray.ts           icon, menu, live countdown tooltip
  ├─ focusWatcher.ts   one 1.5 s poll -> fullscreen guard + distraction escalation
  ├─ lasers.ts         blast orchestration, snooze
- └─ store.ts          settings.json + stats.json (versioned, migrated)
+ ├─ store.ts          settings.json + stats.json (versioned, migrated)
+ └─ systemSettings.ts Windows SPI query behind reduce motion 'auto'
       │ typed preload bridge (contextIsolation on, nodeIntegration off)
  ├─ STAGE renderer    Three.js: actor, diorama, effects, HUD, hit-test   (dumb view)
  ├─ LASER renderer    2D canvas blast                                    (dumb view)
@@ -73,7 +74,7 @@ Everything expensive is pure and tested without Electron: `stateMachine`, `timer
 | # | Status | Notes |
 | --- | --- | --- |
 | M0 Character pipeline | ✅ | `tools/build-model.mjs` builds the chibi and the tree procedurally and exports `bodhi.glb` (5.8k tris, ~400 KB) + `tree.glb` (2.2k tris, ~107 KB). All 12 contract clips, exact names and durations. Passes `gltf-validator` with **zero errors** (`npm run validate:glb`). |
-| M1 Solid core | ✅ | State machine + timer + store + tray + settings + single-instance + session restore. **236 unit tests.** |
+| M1 Solid core | ✅ | State machine + timer + store + tray + settings + single-instance + session restore. **248 unit tests.** |
 | M2 3D stage | ✅ | Stage window, toon renderer, ortho camera (1 unit = 1 DIP px), clip player, hit-test drag + click-through, walk along the floor with easing, mixed-DPI refit, fullscreen hide, render-on-demand with per-phase fps caps. |
 | M3 Lasers | ✅ | Grace → glance → beam → sweep → sweep+shake, snooze, allow list wins, reduce-motion edge outline, photosensitivity cap, lens world→screen tracking. |
 | M4 Polish | ✅ | Tree bloom ceremony, four time-of-day light rigs, break nudges, stats line, synthesized bell/soft-bell/pew, global shortcut, launch at login, "Take Bodhi for a walk". |
@@ -138,9 +139,11 @@ These are choices, not accidents. Each one is arguable; all are easy to reverse.
 5. **Sounds are 22.05 kHz PCM WAV, not Vorbis.** No Ogg encoder is available in this
    environment. The loader asks for `.ogg` first and falls back to `.wav`, so dropping
    in real CC0 freesound recordings is a file swap with no code change.
-6. **Reduce motion follows the setting, not the OS.** `reduceMotion: 'auto'` currently
-   resolves to "off"; wiring it to the Windows `SystemParametersInfo` animation flag
-   needs a native call and is left as a one-line TODO.
+6. **Reduce motion 'auto' is queried out of process.** `reduceMotion: 'auto'` asks
+   user32's `SPI_GETCLIENTAREAANIMATION` through a one-line PowerShell P/Invoke
+   (`src/main/systemSettings.ts`), hidden and time-boxed to 5 s, once at startup and
+   again whenever the setting changes. Any failure (no PowerShell, timeout, non-Windows)
+   resolves to "animations on", so the default look is never changed by a missing shell.
 
 ---
 
